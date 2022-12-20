@@ -10,7 +10,7 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<title>image2cpp</title>
+	<title>image2cpp - Mr Beam </title>
 
 	<style type="text/css">
 		* {
@@ -230,10 +230,11 @@
 <body>
 	<div class="wrapper">
 		<section class="section">
-			<h1>image2cpp</h1>
-			<p>image2cpp is a simple tool to change images into byte arrays (or your array back into an image) for use with Arduino and (monochrome) displays such as OLEDs.
+			<h1>image2cpp - Mr Beam</h1>
+			<p>image2cpp is a simple tool to change images into byte arrays (or your array back into an image) for use with Arduino or embedded development platform and (monochrome) displays such as OLEDs.
 				It was originally made to work with the Adafruit OLED library. An example sketch for Arduino and this library can be found <a href="https://github.com/javl/image2cpp/blob/master/oled_example/oled_example.ino" target="_blank">here</a>.</p>
 			<p>More info (and credits) can be found in the <a href="https://github.com/javl/image2cpp" target="_blank">Github repository</a>. This is also where you can report any <a href="https://github.com/javl/image2cpp/issues" target="_blank">issues</a> you might come across.</p>
+			<p>Forked repo for Mr Beam can be found in the <a href="https://github.com/mrbeam/image2cpp" target="_blank">Mr Beam Github repository</a>. This fork contains the settings for usage specific to Mr Beam 3 One Button display. </p>
 			<p>This tool also works offline. Simply save this page to your computer and open the file in your browser.</p>
 		</section>
 
@@ -405,7 +406,7 @@
 									<div class="table-row">
 										<div class="table-cell"><label>Identifier/Prefix:</label></div>
 										<div class="table-cell">
-											<input id="identifier" class="text-input" type="text" name="identifier" onchange="" value="epd_bitmap_"/>
+											<input id="identifier" class="text-input" type="text" name="identifier" onchange="" value="gImage_"/>
 										</div>
 									</div>
 								</div>
@@ -417,11 +418,12 @@
 						<div class="table-cell"><label>Draw mode:</label></div>
 						<div class="table-cell">
 							<select id="drawMode" name="drawMode" onchange="updateDrawMode(this)">
-								<option value="horizontal1bit">Horizontal - 1 bit per pixel</option>
-								<option value="vertical1bit">Vertical - 1 bit per pixel</option>
-								<option value="horizontal565">Horizontal - 2 bytes per pixel (565)</option>
-								<option value="horizontalAlpha">Horizontal - 1 bit per pixel alpha map</option>
-								<option value="horizontal888">Horizontal - 3 bytes per pixel (rgb888</option>
+								<!-- <option value="horizontal1bit">Horizontal - 1 bit per pixel</option> -->
+								<!-- <option value="vertical1bit">Vertical - 1 bit per pixel</option> -->
+								<!-- <option value="horizontal565">Horizontal - 2 bytes per pixel (1x 16bit)(565)</option> -->
+								<option value="horizontal5652x">Horizontal - 2 bytes per pixel (2x 8bit)(565)</option>
+								<!-- <option value="horizontalAlpha">Horizontal - 1 bit per pixel alpha map</option> -->
+								<!-- <option value="horizontal888">Horizontal - 3 bytes per pixel (rgb888</option> -->
 							</select>
 						</div>
 					</div>
@@ -525,7 +527,37 @@
 				}
 				return output_string;
 			},
+			// Output the image as a string for 565 displays (horizontally) 2x 8bits
+			horizontal5652x: function (data, canvasWidth, canvasHeight){
+				var output_string = "";
+				var output_index = 0;
 
+				// format is RGBA, so move 4 steps per pixel
+				for(var index = 0; index < data.length; index += 4){
+					// Get the RGB values
+					var r = data[index];
+					var g = data[index + 1];
+					var b = data[index + 2];
+					// calculate the 565 color value
+					var rgb = ((r & 0b11111000) << 8) | ((g & 0b11111100) << 3) | ((b & 0b11111000) >> 3);
+					// Split up the color value in two bytes
+					var firstByte = ((rgb >> 8) & 0xff).toString(16);
+					var secondByte = (rgb & 0xff).toString(16);
+
+					// var byteSet = rgb.toString(16);
+					while(firstByte.length < 2){ firstByte = "0" + firstByte; }
+					while(secondByte.length < 2){ secondByte = "0" + secondByte; }
+					output_string += "0x" + firstByte + ", "+"0x" + secondByte + ", ";
+
+					// add newlines every 16 bytes
+					output_index++;
+					if(output_index >= 8){
+						output_string += "\n";
+						output_index = 0;
+					}
+				}
+				return output_string;
+			},
 			// Output the image as a string for 565 displays (horizontally)
 			horizontal565: function (data, canvasWidth, canvasHeight){
 				var output_string = "";
@@ -699,7 +731,7 @@
 			outputFormat: "plain",
 			invertColors: false,
 			rotate180: false,
-			conversionFunction: ConversionFunctions.horizontal1bit
+			conversionFunction: ConversionFunctions.horizontal5652x
 		};
 
 		// Variable name, when "arduino code" is required
@@ -1115,15 +1147,15 @@
 						bytesUsed += code.split("\n").length * 16; // 16 bytes per line.
 						console.log(image);
 
-						let varname = getIdentifier() + image.glyph.replace(/[^a-zA-Z0-9]/g,"_");
+						let varname = getIdentifier() + image.glyph.replace(/[^a-zA-Z0-9]/g,"_")+"_"+image.canvas.width+"x"+image.canvas.height+"px";
 						varQuickArray.push(varname);
-						code = comment + "const " + getType() + " " + varname + " [] PROGMEM = {\n" + code + "};\n";
+						code = comment + "const " + getType() + " " + varname +" ["+(image.canvas.width*image.canvas.height*2)+"] = {\n" + code + "};\n";
 						output_string += code;
 					});
 					// --
 					varQuickArray.sort();
 					// --
-					output_string += "\n// Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = "+bytesUsed+")\n"
+					output_string += "\n// Array of all bitmaps for convenience.\n"
 					output_string += "const int " + (getIdentifier()+"allArray_LEN") + " = " + varQuickArray.length + ";\n"
 					output_string += "const " + getType() + "* " + (getIdentifier()+"allArray") + "["+varQuickArray.length+"] = {\n\t"+varQuickArray.join(",\n\t")+"\n};\n";
 					// --
@@ -1385,6 +1417,8 @@
 				return "uint16_t";
 			}else if(settings.conversionFunction == ConversionFunctions.horizontal888){
 				return "unsigned long";
+			}else if(settings.conversionFunction == ConversionFunctions.horizontal5652x){
+					return "uint8_t";
 			}else{
 				return "unsigned char";
 			}
