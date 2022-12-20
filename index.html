@@ -365,10 +365,10 @@
 						<div class="table-cell"><label for="outputFormat">Code output format</label></div>
 						<div class="table-cell">
 							<select id="outputFormat" name="outputFormat" onchange="updateOutputFormat(this)">
-								<option value="plain">plain bytes</option>
 								<option value="arduino">Arduino code</option>
-								<option value="arduino_single">Arduino code, single bitmap</option>
-								<option value="adafruit_gfx">Adafruit GFXbitmapFont</option>
+								<option value="pico">Pico code</option>
+								<!-- <option value="arduino_single">Arduino code, single bitmap</option>
+								<option value="adafruit_gfx">Adafruit GFXbitmapFont</option> -->
 							</select>
 							<div id="format-caption-container">
 								<div data-caption="arduino">
@@ -1132,6 +1132,36 @@
 			switch(settings["outputFormat"]) {
 
 				case "arduino": {
+					let varQuickArray = [];
+					let bytesUsed     = 0;
+					// --
+					images.each(function(image) {
+						code = imageToString(image);
+
+						// Trim whitespace from end and remove trailing comma
+						code = code.replace(/,\s*$/,"");
+
+						code = "\t" + code.split("\n").join("\n\t") + "\n";
+						var variableCount = images.length() > 1 ? count++ : "";
+						var comment = "// '" + image.glyph + "', "+image.canvas.width+"x"+image.canvas.height+"px\n";
+						bytesUsed += code.split("\n").length * 16; // 16 bytes per line.
+						console.log(image);
+
+						let varname = getIdentifier() + image.glyph.replace(/[^a-zA-Z0-9]/g,"_")+"_"+image.canvas.width+"x"+image.canvas.height+"px";
+						varQuickArray.push(varname);
+						code = comment + "const " + getType() + " " + varname +" ["+(image.canvas.width*image.canvas.height*2)+"] PROGMEM = {\n" + code + "};\n";
+						output_string += code;
+					});
+					// --
+					varQuickArray.sort();
+					// --
+					output_string += "\n// Array of all bitmaps for convenience.\n"
+					output_string += "const int " + (getIdentifier()+"allArray_LEN") + " = " + varQuickArray.length + ";\n"
+					output_string += "const " + getType() + "* " + (getIdentifier()+"allArray") + "["+varQuickArray.length+"] = {\n\t"+varQuickArray.join(",\n\t")+"\n};\n";
+					// --
+					break;
+				}
+				case "pico": {
 					let varQuickArray = [];
 					let bytesUsed     = 0;
 					// --
