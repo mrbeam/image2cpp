@@ -10,7 +10,7 @@ Alternatively you can also enter a byte array as input to turn it back into an i
 You don't need any special dependencies / internet connection; all the necessary parts sit in a single .html file. So just open this index.html page in a (recent) browser to run the tool.
 Or you can use the online version tailored for Mr Beam 3 One Button Display use case at https://mrbeam.github.io/image2cpp/ .
 
-Refer the [Confluence](https://mr-beam.atlassian.net/l/cp/xPjdCmH9) page on steps to use the tool.
+Refer the [Confluence](https://mr-beam.atlassian.net/l/cp/1KEofSUp) page on steps to use the tool.
 
 ### Example Arduino code
 You can find a simple Arduino example sketch [over here](https://github.com/mrbeam/image2cpp/blob/master/oled_example/oled_example.ino) in the repository.
